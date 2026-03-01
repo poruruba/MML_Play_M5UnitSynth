@@ -23,7 +23,7 @@
 #define MML_AS_BASE 10
 #define MML_B_BASE  11
 
-const PROGMEM  uint8_t mml_scaleBase[] = {
+static const PROGMEM  uint8_t mml_scaleBase[] = {
   MML_A_BASE, MML_B_BASE, MML_C_BASE, MML_D_BASE, MML_E_BASE, MML_F_BASE, MML_G_BASE,
 };
 
