@@ -1,10 +1,11 @@
-# MML_Play
+# MML_Play_M5UnitSynth
 
-Arduino、Arduino STM32、ESP32(M5Stack)用 MML文演奏クラスライブラリ  
+Arduino + M5UnitSynth用 MML文演奏クラスライブラリ
+MM_PlayからM5UnitSynth専用にフォークしました。
 
 ## ライブラリ名称
 
-MML (ヘッダーファイル MML.h)  
+MML_Synth (ヘッダーファイル MML_Synth.h)  
 
 主な機能
 
@@ -25,18 +26,18 @@ MML (ヘッダーファイル MML.h)
 
 ### クラス名
 
-MML
+MML_Synth
 
 ### ヘッダーファイル
 
-`#include "MML.h"`  
+`#include "MML_Synth.h"`  
 
 ### パブリックメンバー関数
 
 #### ■ コンストラクタ
 
 【書式】  
-`MML()`  
+`MML_Synth()`  
 
 【引数】  
 なし
@@ -57,8 +58,9 @@ MML
 【書式】  
 `void init(`  
 `void (*func_init)(void),`  
-`void (*func_tone(uint16_t freq, uint16_t tm, uint16_t vol),`  
+`void (*func_tone(uint8_t pitch, uint16_t vol),`  
 `void (*func_notone)(void),`  
+`void (*func_instrument(uint16_t value),`  
 `void (*func_debug)(uint8_t c)=0)`  
 `)`
 
@@ -66,6 +68,7 @@ MML
 `func_init`：  単音出力デバイス初期化関数へのポインタ  
 `func_tone`：  単音出力関数へのポインタ  
 `func_notone`：単音出力停止関数へのポインタ  
+`func_instrument`：音色番号変更関数へのポインタ  
 `func_debug`： デバッグ出力関数へのポインタ  
 
 【戻り値】  
@@ -80,6 +83,8 @@ MML
 単音出力時に引数として、
 `freq`:周波数(Hz)、`tm`：音長（ミリ秒）`vol`:音量(0～15)  
 が渡されます。  
+
+`func_instrument`は音色番号を変更する関数へのポインタです。  
 
 `func_notone`は単音出力を停止する関数へのポインタです。  
 
@@ -137,7 +142,12 @@ MML文には次のコマンドを利用することが出来ます。
 
 - `V<音の大きさ>`：ボリューム設定  
 初期値は15、0(無音) ～ 15(最大)  
-PWMのパルス幅で音の大きさを簡易的に再現しています。  
+PWMのパルス幅で音の大きさを簡易的に再現しています。
+
+- `＠<音色番号>`：音色番号の設定  
+初期値は0、0(無音) ～ 127(最大)  
+M8UnitSynth内蔵の音色番号を指定します。
+
 - `?`：デバッグON  
 演奏中の音階記号を表示します。  
 PLAYコマンド事に指定する必要があります。  
@@ -338,265 +348,7 @@ mml.tempo(150);
 【説明】  
 `stop()`関数にて中断した演奏を再開します。  
 
-## サンプルプログラム
+#### サンプルプログラム
 
-### Arduino Uno用サンプルプログラム
+samplesフォルダを参照してください。
 
-#### MML_PLAY.ino
-
-フォアグランド演奏後、バックグラウンド演奏を行うサンプルプログラムです。  
-スケッチのコンパイルには、**TimerOne**ライブラリが別途必要です。  
-
-```CPP:MML_PLAY.ino
-//
-// MML演奏サンプル Arduino版
-//
-
-#include <TimerOne.h>
-#include "MML.h"
-
-#define   TonePin     8 // 圧電スピーカー接続ピン
-#define   StopBtn     2 // フォアグランド演奏中断ボタン
-#define   StopBtnInt0 0 // フォアグランド演奏中断ボタンの割り込み番号
-
-MML mml;             // MML文演奏管理
-
-// デバイス初期化関数
-void dev_toneInit() {
-}
-
-// 単音出力関数
-void dev_tone(uint16_t freq, uint16_t tm, uint16_t vol) {
-  tone(TonePin, freq);
-  if (tm) {
-    delay(tm);
-    noTone(TonePin);
-  }
-}
-
-// 単音出力停止関数
-void dev_notone() {
-  noTone(TonePin);
-}
-
-// バックグラウンド演奏割り込み
-void handle_timer() {
-  if (mml.isBGMPlay())
-    if (mml.available())
-      mml.playTick();
-}
-
-// 猫ふんじゃった
-const char * mmltext =
-  "?O6t180v15l16d+c+r8f+rf+rd+c+r8f+rf+rd+c+l8rf+r"
-  "f+rl16frfrd+c+r8frfrd+c+r8frfrd+c+l8"
-  "rfrfrl16f+rf+rd+c+r8f+rf+rd+c+r8f+r"
-  "f+rd+c+l8rf+rf+rl16frfrd+c+r8frfrd+c+r8fr"
-  "frd+c+l8rfrfrl16f+rf+rd+c+l8rf+rf+rf+r"
-  "f+rf+rf+rl16frfrd+c+l8rfrfrfrfrfrfrl16"
-  "f+rf+rd+c+r8f+rf+rd+c+r8f+rf+rd+c+l8r"
-  "f+rf+rl16frfrd+c+r8frfrd+c+r8frfrd+c+l8"
-  "rfrfrl16f+rf+r8.f+rc+c+d8c+8.frf+?"
-  ;
-  
-// デバッグ出力用
-void debug(uint8_t c) {
-  Serial.write(c);
-}
-
-// フォアグランド演奏の停止
-void OnStopkey() {
-  if (mml.isPlay()) {
-    mml.stop();
-    Serial.println("Stop foreground playing");
-  }
-}
-
-void setup() {
-  Serial.begin(115200);
-
-  // フォアグランド演奏停止用ボタンの設定
-  pinMode(StopBtn,INPUT_PULLUP);
-  attachInterrupt(StopBtnInt0, OnStopkey, FALLING);
-  
-  Serial.println("MML library sample. Hit any key to start.");
-  
-  // キーボード入力待ち
-  while (!Serial.available())
-    continue;
-  
-  // MML初期化、デバイス依存関数の登録
-  mml.init(dev_toneInit, dev_tone, dev_notone, debug);
-
-  // フォアグランド演奏
-  Serial.println("Now foreground playing ..");
-  mml.setText(mmltext);
-  mml.play();
-  detachInterrupt(StopBtn);
-
-  // タイマー割り込み設定
-  Timer1.initialize(10000);
-  Timer1.attachInterrupt(handle_timer);
-
-  delay(1000);
-
-  // バックグラウンド演奏
-  Serial.println();
-  Serial.println("Now Background playing ..");
-  Serial.println("Menu: e:end, r:resume,  s:start");
-  mml.playBGM();
-}
-
-void loop() {
-   // バックグラウンド演奏中の操作
-  if (Serial.available()) {
-    uint8_t c = Serial.read();
-    if (c == 'e' || c== 'E') {        // 演奏停止
-      mml.stop();
-    } else if (c == 'r' || c== 'R') { // 演奏再開
-      mml.resume();
-    } else if (c == 's' || c== 'S') { // 最初から演奏
-      mml.stop();
-      delay(15);
-      mml.playBGM();
-    }
-  }
-}
-```
-
-### Arduino STM32用サンプルプログラム
-
-#### MML_Play_STM32Std.ino
-
-Blue Pillボード（STM32F103C8T6搭載)用のサンプルプログラムです。
-Arduino Uno版と同等の機能です。  
-
-```CPP:MML_Play_STM32Std.ino
-//
-// MML演奏サンプル Arduino STN32 標準Tone()関数利用版
-//
-
-#include "MML.h"
-#include "TimerEvent.h"
-
-#define   TonePin PB9 // 圧電スピーカー接続ピン
-#define   StopBtn PB8 // フォアグランド演奏中断ボタン
-
-TimerEvent ticker;   // タイマー割り込み管理
-MML mml;             // MML文演奏管理
-
-// デバイス初期化関数
-void dev_toneInit() {
-}
-
-// 単音出力関数
-void dev_tone(uint16_t freq, uint16_t tm, uint16_t vol) {
-  tone(TonePin,freq);
-  if (tm) {
-    delay(tm);
-    noTone(TonePin);
-  }
-}
-
-// 単音出力停止関数
-void dev_notone() {
-  noTone(TonePin);
-}
-
-// バックグラウンド演奏割り込み
-void handle_timer() {
-  if (mml.isBGMPlay())
-    if (mml.available())
-      mml.playTick();
-}
-
-// 猫ふんじゃった
-const char * mmltext =
-  "?O6t180v15l16d+c+r8f+rf+rd+c+r8f+rf+rd+c+l8rf+r"
-  "f+rl16frfrd+c+r8frfrd+c+r8frfrd+c+l8"
-  "rfrfrl16f+rf+rd+c+r8f+rf+rd+c+r8f+r"
-  "f+rd+c+l8rf+rf+rl16frfrd+c+r8frfrd+c+r8fr"
-  "frd+c+l8rfrfrl16f+rf+rd+c+l8rf+rf+rf+r"
-  "f+rf+rf+rl16frfrd+c+l8rfrfrfrfrfrfrl16"
-  "f+rf+rd+c+r8f+rf+rd+c+r8f+rf+rd+c+l8r"
-  "f+rf+rl16frfrd+c+r8frfrd+c+r8frfrd+c+l8"
-  "rfrfrl16f+rf+r8.f+rc+c+d8c+8.frf+?"
-  ;
-
-// デバッグ出力用
-void debug(uint8_t c) {
-  Serial.write(c);
-}
-
-// フォアグランド演奏の停止
-void OnStopkey() {
-  if (mml.isPlay()) {
-    mml.stop();
-    Serial.println("Stop foreground playing");
-  }
-}
-
-void setup() {
-  Serial.begin(115200);
-
-  // フォアグランド演奏停止用ボタンの設定
-  pinMode(StopBtn,INPUT_PULLUP);
-  attachInterrupt(StopBtn, OnStopkey, FALLING);
-
-  Serial.println("MML library sample. Hit any key to start.");
-
-  // キーボード入力待ち
-  while (!Serial.available())
-    continue;
-  
-  // MML初期化、デバイス依存関数の登録
-  mml.init(dev_toneInit, dev_tone, dev_notone, debug);
-
-  // フォアグランド演奏
-  Serial.println("Now foreground playing ..");
-  mml.setText(mmltext);
-  mml.play();
-  detachInterrupt(StopBtn);
-
-  // タイマー割り込み設定
-  ticker.set(10, handle_timer);
-  ticker.setPriority(14);
-  ticker.start();
-
-  delay(1000);
-
-  // バックグラウンド演奏
-  Serial.println();
-  Serial.println("Now Background playing ..");
-  Serial.println("Menu: e:end, r:resume,  s:start");
-  mml.playBGM();
-}
-
-void loop() {
-   // バックグラウンド演奏中の操作
-  if (Serial.available()) {
-    uint8_t c = Serial.read();
-    if (c == 'e' || c== 'E') {        // 演奏停止
-      mml.stop();
-    } else if (c == 'r' || c== 'R') { // 演奏再開
-      mml.resume();
-    } else if (c == 's' || c== 'S') { // 最初から演奏
-      mml.stop();
-      delay(15);
-      mml.playBGM();
-    }
-  }
-}
-```
-
-#### MML_Play_STM32Ex.ino
-
-Blue Pillボード（STM32F103C8T6搭載)用のサンプルプログラムです。  
-Arduino Uno版と同等の機能ですが、tone()関数は音の大きさ指定対応版に置き換えています。  
-詳細については、スケッチを参照して下さい。  
-
-#### MML_Play_M5Stack.ino
-
-M5Stack（ESP32搭載)用のサンプルプログラムです。  
-tone()は爆音対策を行ったオリジナルの関数を使って鳴らしています。  
-詳細については、スケッチを参照して下さい。  
