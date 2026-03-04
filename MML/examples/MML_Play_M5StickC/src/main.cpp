@@ -6,19 +6,19 @@
 #define SYNTH_DEFAULT_CHANNEL 0
 
 static M5UnitSynth synth;
-MML_Synth mml;
+MML_Synth mml(0);
 
 // 単音出力関数
-void dev_tone(uint8_t pitch, uint16_t vol) {
-  synth.setNoteOn(SYNTH_DEFAULT_CHANNEL, pitch, vol / 15 * 127);
+void dev_tone(uint8_t idx, uint8_t pitch, uint16_t vol) {
+  synth.setNoteOn(SYNTH_DEFAULT_CHANNEL, pitch, vol / 15.0 * 127.0);
 }
 
-void dev_instrument(uint8_t value) {
+void dev_instrument(uint8_t idx, uint8_t value) {
   synth.setInstrument(0, SYNTH_DEFAULT_CHANNEL, value);
 }
 
 // 単音出力停止関数
-void dev_notone() {
+void dev_notone(uint8_t idx) {
 }
 
 // 猫ふんじゃった
@@ -35,7 +35,7 @@ const char * mmltext =
   ;
   
 // デバッグ出力用
-void debug(uint8_t c) {
+void debug(uint8_t idx, uint8_t c) {
   Serial.write(c);
 }
 
@@ -54,7 +54,8 @@ void loop() {
 
   if (mml.isBGMPlay()) {
     // 演奏状態で演奏継続可能なら１音再生
-    if (mml.available()) 
-      mml.playTick();    
+    uint32_t tick = millis();
+  	if (mml.available(tick))
+      mml.playTick(tick);
   }
 }
