@@ -38,10 +38,10 @@ MML_Synth
 #### ■ コンストラクタ
 
 【書式】  
-`MML_Synth()`  
+`MML_Synth(index)`  
 
 【引数】  
-なし
+`index`: idx
 
 【戻り値】  
 なし
@@ -58,11 +58,11 @@ MML_Synth
 
 【書式】  
 `void init(`  
-`void (*func_init)(void),`  
-`void (*func_tone(uint8_t pitch, uint16_t vol),`  
-`void (*func_notone)(void),`  
-`void (*func_instrument(uint16_t value),`  
-`void (*func_debug)(uint8_t c)=0)`  
+`void (*func_init)(uint8_t idx),`  
+`void (*func_tone(uint8_t idx, uint8_t pitch, uint16_t vol),`  
+`void (*func_notone)(uint8_t idx),`  
+`void (*func_instrument(uint8_t idx, uint16_t value),`  
+`void (*func_debug)(uint8_t idx, uint8_t c)=0)`  
 `)`
 
 【引数】  
@@ -186,9 +186,10 @@ mml.tempo(150);
 #### ■ MML文１音演奏
 
 【書式】  
-`void playTick(uint8_t flgTick = true)`  
+`void playTick(uint32_t tick, uint8_t flgTick = true)`  
 
 【引数】  
+`tick`: tick
 `flgTick`：再生モード  
 
 - `false` １音再生完了待ちを行う  
@@ -297,10 +298,10 @@ mml.tempo(150);
 #### ■ １音演奏可能の確認
 
 【書式】  
-`uint8_t available()`  
+`uint8_t available(uint32_t tick)`  
 
 【引数】  
-なし
+`tick`: tick
 
 【戻り値】  
 演奏可能な場合は`1`、そうでない場合は`0`を返します。
