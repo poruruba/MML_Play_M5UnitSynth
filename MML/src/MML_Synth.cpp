@@ -100,8 +100,7 @@ int16_t MML_Synth::getParamLen() {
   int16_t tmpLen = getParam();
   if (tmpLen == -1)
     tmpLen = 0;
-  else if (!((tmpLen==1)||(tmpLen==2)||(tmpLen==4)||(tmpLen==8)||
-          (tmpLen==16)||(tmpLen==32)||(tmpLen==64)) ) {
+  else if ( tmpLen < 0 || 64 < tmpLen ) {
     // 長さ指定エラー
     tmpLen = -1;
     err = ERR_MML; 
@@ -203,7 +202,7 @@ void MML_Synth::playTick(uint32_t tick, uint8_t flgTick) {
             scale++;
           } else {
             if (local_oct < MML_MAX_OCT) {
-              scale = MML_B_BASE;
+              scale = MML_C_BASE;
               local_oct++;
             }
           }
@@ -249,7 +248,7 @@ void MML_Synth::playTick(uint32_t tick, uint8_t flgTick) {
           endTick = (endTick > 0 ? endTick : tick) + duration;
           break;
         } else {
-          delay(duration); 
+          delay(duration);
         }
       } else {
         // 音符
@@ -336,6 +335,25 @@ void MML_Synth::playTick(uint32_t tick, uint8_t flgTick) {
         int ch = *mml_ptr++;
         if(ch == '\r' || ch == '\n' )
           break;
+      }
+    } else if (c == 'N') { // ノート番号
+      mml_ptr++;
+      uint32_t note = getParam();
+      if( note > 0xff ){
+        err = ERR_MML; 
+        break;
+      }
+      duration = 240000/common_tempo/local_len;  // 再生時間(msec)
+      playduration = duration;
+      endTick = (endTick > 0 ? endTick : tick) + duration;
+      tone(note, common_vol);
+    } else if (c == 'M') {
+      mml_ptr++;
+      if( *mml_ptr == 'M' && *(mml_ptr + 1) == 'L' && *(mml_ptr + 2) == '@' ){
+        mml_ptr += 3;
+      }else{
+        err = ERR_MML; 
+        break;
       }
     } else {
       err = ERR_MML; 

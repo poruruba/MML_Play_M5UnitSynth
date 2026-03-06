@@ -1,8 +1,8 @@
 //
 // MMLクラスライブラリ V1.0
 // 作成日 2019/03/24 by たま吉さん
-// 更新日 2019/05/23 by たま吉さん
-// 更新日 2026/03/01,M5Unit Synth対応
+// 最終更新日 2019/05/23 by たま吉さん
+// 変更  2026/03/01,M5Unit Synth対応
 //
 
 #ifndef ___MML_Synth_h___
@@ -66,7 +66,7 @@ class MML_Synth {
 
   public:
     MML_Synth(uint8_t index = 0) : idx(index) {}
- 
+
     // ハードウェア依存関数のアタッチ
     void init(
        void (*f1)(uint8_t idx), 
@@ -95,4 +95,3 @@ class MML_Synth {
 };
 
 #endif
-
