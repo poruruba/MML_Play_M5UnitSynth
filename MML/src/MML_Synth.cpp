@@ -260,7 +260,6 @@ void MML_Synth::playTick(uint32_t tick, uint8_t flgTick) {
           break;
         } else {
           tone(pitch, common_vol);                        // 音の再生
-          delay(duration);
         }
       }
       
